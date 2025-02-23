@@ -26,6 +26,7 @@ export default function SearchFilter({ searchQuery, setSearchQuery, filterStatus
           >
             <option value="All">All</option>
             <option value="Available">Available</option>
+            <option value="Low Quantity">Low Quantity</option>
             <option value="Out of Stock">Out of Stock</option>
           </select>
           <FaFilter className="absolute left-3 top-3 text-gray-400" />

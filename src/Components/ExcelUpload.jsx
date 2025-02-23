@@ -3,20 +3,22 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { FaFileExcel, FaUpload } from "react-icons/fa";
 import { useState } from "react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function ExcelUpload() {
   const [data, setData] = useState([]);
+  const [fileName, setFileName] = useState(""); // Store uploaded file name
+  const storedEmail = localStorage.getItem("email");
 
   // Download Excel Template
   const onDownloadTemplate = () => {
     const wb = XLSX.utils.book_new();
     const wsData = [
       ["Name", "Manufacturing Date", "Expiry Date", "Dosage", "Form", "Unit Price", "Brand Name", "Quantity", "Reorder Level"],
-    ]; // Header row
+    ];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     XLSX.utils.book_append_sheet(wb, ws, "Medicines");
-
-    // Generate and save file
     const wbout = XLSX.write(wb, { type: "array", bookType: "xlsx" });
     const blob = new Blob([wbout], { type: "application/octet-stream" });
     saveAs(blob, "medicine_template.xlsx");
@@ -25,45 +27,46 @@ export default function ExcelUpload() {
   // Handle File Upload
   const onFileUpload = async (acceptedFiles) => {
     const file = acceptedFiles[0];
+    setFileName(file.name); // Store file name in state
     const reader = new FileReader();
-
     reader.onload = (e) => {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: "array" });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
       console.log("Uploaded Data:", jsonData);
-      setData(jsonData); // Set the uploaded data to state
+      setData(jsonData); 
     };
-
     reader.readAsArrayBuffer(file);
   };
 
   // Handle Submit (Send Data to Backend)
   const handleSubmit = async () => {
     try {
-      const response = await fetch("http://localhost:8080/api/medicines/upload", {
+      const response = await fetch(`http://localhost:8080/api/medicines/upload/${storedEmail}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data), // Stringify the data
+        body: JSON.stringify(data),
       });
 
       if (response.ok) {
-        alert("Medicines uploaded successfully!");
+        toast.success("Medicines uploaded successfully!");
+        setFileName("")
       } else {
-        const errorData = await response.json();
-        alert(`Upload failed: ${errorData.error || "Please try again."}`);
+        toast.error(`Upload failed Please try again"}`);
       }
     } catch (error) {
-      console.error("Upload error:", error);
-      alert("An error occurred during upload.");
+      toast.error("Error occurred during upload.");
     }
   };
 
   // Dropzone Configuration
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: onFileUpload,
-    accept: ".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // Correct accept prop
+    accept: {
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+      "application/vnd.ms-excel": [".xls"],
+    },
     multiple: false,
   });
 
@@ -95,6 +98,14 @@ export default function ExcelUpload() {
           )}
         </div>
 
+        {/* Show uploaded file name with an Excel icon */}
+        {fileName && (
+          <div className="flex items-center p-3 bg-gray-100 rounded-lg shadow-md">
+            <FaFileExcel className="text-green-600 text-2xl mr-2" />
+            <p className="text-gray-800">{fileName}</p>
+          </div>
+        )}
+
         {/* Submit Button */}
         <button
           onClick={handleSubmit}
@@ -103,6 +114,7 @@ export default function ExcelUpload() {
           Submit Data
         </button>
       </div>
+      <ToastContainer />
     </div>
   );
 }

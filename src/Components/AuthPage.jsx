@@ -74,6 +74,7 @@ export default function AuthPage() {
       // Registration successful
       setError(""); // Clear any previous errors
       setEmailError(""); // Clear email-specific error
+      localStorage.setItem('email' , formData.email)
       navigate("/dashboard"); // Redirect to the dashboard
     } catch (err) {
       setError(err.message || "An error occurred during registration.");
